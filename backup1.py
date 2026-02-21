@@ -33,11 +33,18 @@ async def upload_file(
     session: AsyncSession = Depends(get_async_session)
 ):
     
-
+    
+    temp_file_path = None
     
     try:
         contents = await file.read()
         encoded = base64.b64encode(contents).decode('utf-8')
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename or '')[1]) as temp_file:
+            temp_file_path = temp_file.name
+            temp_file.write(contents)
+            print(f"Temp file path: {temp_file_path}")
+            print(f"Temp file size: {os.path.getsize(temp_file_path)} bytes")
     
         upload_result = await asyncio.get_event_loop().run_in_executor(
             None,
@@ -79,7 +86,12 @@ async def upload_file(
     
     except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
- 
+    
+    finally:
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+            file.file.close()
+
 
 
 @app.get('/feed')

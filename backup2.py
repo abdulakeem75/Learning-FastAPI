@@ -33,11 +33,13 @@ async def upload_file(
     session: AsyncSession = Depends(get_async_session)
 ):
     
-
     
     try:
         contents = await file.read()
         encoded = base64.b64encode(contents).decode('utf-8')
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename or '')[1]) as temp_file:
+            temp_file_path = temp_file.name
+            temp_file.write(contents)   
     
         upload_result = await asyncio.get_event_loop().run_in_executor(
             None,
@@ -45,17 +47,14 @@ async def upload_file(
                 file = encoded,
                 file_name = file.filename,
                 options = UploadFileRequestOptions(
-                   use_unique_file_name= True,
-                   tags=['backend-upload']
+                    use_unique_file_name= True,
+                    tags=['backend-upload']
+                
                 )
             )
-            
-            
-            
-            
-            
-            
         )
+        
+        
         
         if upload_result.response_metadata.http_status_code == 200:
             
@@ -79,7 +78,12 @@ async def upload_file(
     
     except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
- 
+    
+    finally:
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+            file.file.close()
+
 
 
 @app.get('/feed')

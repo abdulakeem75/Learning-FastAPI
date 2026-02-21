@@ -1,0 +1,10 @@
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Python stuff (optional but good)
+__pycache__/
+*.pyc
+venv/
+env/
